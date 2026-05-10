@@ -143,6 +143,27 @@ def load_from_site(count=10):
     return data
 
 
+# Поиск криптовалюты по названию (частичное совпадение)
+def search_by_name(data, query):
+    query = query.lower()
+    results = []
+    for coin in data:
+        if query in coin["name"].lower():
+            results.append(coin)
+    return results
+
+
+# Вывод информации об одной криптовалюте
+def print_coin(coin):
+    print(f"  ID:           {coin['id']}")
+    print(f"  Название:     {coin['name']}")
+    print(f"  Символ:       {coin['symbol']}")
+    print(f"  Slug:         {coin['slug']}")
+    print(f"  В обращении:  {coin['circulating_supply']:.2f}")
+    print(f"  Цена (USD):   {coin['price']:.2f}")
+    print(f"  Капитализация:{coin['market_cap']:.2f}")
+
+
 def main():
     data = []
 
@@ -154,9 +175,28 @@ def main():
         elif choice == "2":
             data = load_from_site(10)
         elif choice == "3":
-            print("(пока не реализовано)")
+            if not data:
+                print("Данные не загружены! Сначала выберите пункт 1 или 2.")
+            else:
+                print(f"\nВсего загружено: {len(data)} криптовалют\n")
+                for coin in data:
+                    print(f"--- {coin['name']} ({coin['symbol']}) ---")
+                    print_coin(coin)
+                    print()
         elif choice == "4":
-            print("(пока не реализовано)")
+            if not data:
+                print("Данные не загружены! Сначала выберите пункт 1 или 2.")
+            else:
+                query = input("Введите название криптовалюты: ")
+                results = search_by_name(data, query)
+                if results:
+                    print(f"\nНайдено: {len(results)}\n")
+                    for coin in results:
+                        print(f"--- {coin['name']} ({coin['symbol']}) ---")
+                        print_coin(coin)
+                        print()
+                else:
+                    print("Ничего не найдено.")
         elif choice == "0":
             print("Выход из программы.")
             break
