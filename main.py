@@ -1,6 +1,8 @@
 # Программа для работы с данными о криптовалютах (coinmarketcap)
 
 import csv
+import requests
+from bs4 import BeautifulSoup
 
 
 def menu():
@@ -44,6 +46,103 @@ def load_from_csv(filename):
     return data
 
 
+# Убираем символ $ и запятые из строки с ценой, возвращаем число
+def parse_price(text):
+    text = text.replace("$", "").replace(",", "")
+    return float(text)
+
+
+# Парсим market_cap — берём полное значение из второго span
+def parse_market_cap(td):
+    spans = td.find_all("span")
+    if len(spans) >= 2:
+        return parse_price(spans[1].get_text(strip=True))
+    return 0.0
+
+
+# Парсим circulating_supply — текст вида "20.02MBTC"
+def parse_supply(td):
+    div = td.find("div", class_="circulating-supply-value")
+    if not div:
+        return 0.0
+    span = div.find("span")
+    if not span:
+        return 0.0
+    text = span.get_text(strip=True)
+
+    # суффиксы: K=тысячи, M=миллионы, B=миллиарды, T=триллионы
+    multipliers = {"K": 1_000, "M": 1_000_000, "B": 1_000_000_000, "T": 1_000_000_000_000}
+    for suffix, mult in multipliers.items():
+        if text.endswith(suffix):
+            return float(text[:-1]) * mult
+    return float(text)
+
+
+# Загрузка данных с сайта coinmarketcap.com через requests + BeautifulSoup
+def load_from_site(count=10):
+    url = "https://coinmarketcap.com/"
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+
+    print("Загружаю страницу coinmarketcap.com...")
+    try:
+        response = requests.get(url, headers=headers, timeout=15)
+    except Exception as e:
+        print(f"Ошибка при загрузке: {e}")
+        print("Попробуйте вариант с selenium (пункт меню 2с)")
+        return []
+
+    soup = BeautifulSoup(response.text, "html.parser")
+    table = soup.find("table")
+    if not table:
+        print("Не удалось найти таблицу на странице!")
+        return []
+
+    rows = table.find_all("tr")
+    data = []
+
+    # первая строка — заголовок, данные начинаются со второй
+    for row in rows[1:]:
+        cells = row.find_all("td")
+        if len(cells) < 10:
+            continue
+
+        # td[2] — название и символ (в двух тегах <p>)
+        td_name = cells[2]
+        link = td_name.find("a")
+        href = link.get("href", "") if link else ""
+        slug = href.replace("/currencies/", "").strip("/")
+
+        img = td_name.find("img")
+        img_src = img.get("src", "") if img else ""
+        coin_id = img_src.split("/")[-1].replace(".gif", "").replace(".png", "")
+
+        ps = td_name.find_all("p")
+        name = ps[0].get_text(strip=True) if len(ps) > 0 else ""
+        symbol = ps[1].get_text(strip=True) if len(ps) > 1 else ""
+
+        # td[3] — цена, td[7] — market cap, td[9] — circulating supply
+        price = parse_price(cells[3].get_text(strip=True))
+        market_cap = parse_market_cap(cells[7])
+        supply = parse_supply(cells[9])
+
+        coin = {
+            "id": int(coin_id) if coin_id.isdigit() else 0,
+            "name": name,
+            "symbol": symbol,
+            "slug": slug,
+            "circulating_supply": supply,
+            "price": price,
+            "market_cap": market_cap
+        }
+        data.append(coin)
+
+        if len(data) >= count:
+            break
+
+    print(f"Загружено {len(data)} криптовалют с сайта.")
+    return data
+
+
 def main():
     data = []
 
@@ -53,7 +152,7 @@ def main():
         if choice == "1":
             data = load_from_csv("currencies26.csv")
         elif choice == "2":
-            print("(пока не реализовано)")
+            data = load_from_site(10)
         elif choice == "3":
             print("(пока не реализовано)")
         elif choice == "4":
