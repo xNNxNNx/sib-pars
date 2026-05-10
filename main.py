@@ -99,8 +99,8 @@ def load_from_site(count=10):
     rows = table.find_all("tr")
     data = []
 
-    # первая строка — заголовок, данные начинаются со второй
-    for row in rows[1:]:
+    # первые две строки — заголовок и индекс, пропускаем
+    for row in rows[2:]:
         cells = row.find_all("td")
         if len(cells) < 10:
             continue
