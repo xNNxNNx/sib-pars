@@ -88,7 +88,6 @@ def load_from_site(count=10):
         response = requests.get(url, headers=headers, timeout=15)
     except Exception as e:
         print(f"Ошибка при загрузке: {e}")
-        print("Попробуйте вариант с selenium (пункт меню 2с)")
         return []
 
     soup = BeautifulSoup(response.text, "html.parser")
