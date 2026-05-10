@@ -1,5 +1,8 @@
 # Программа для работы с данными о криптовалютах (coinmarketcap)
 
+import csv
+
+
 def menu():
     print("\n=== Криптовалюты ===")
     print("1. Загрузить данные из CSV файла")
@@ -11,6 +14,36 @@ def menu():
     return choice
 
 
+# Чтение данных из csv файла
+def load_from_csv(filename):
+    data = []
+    try:
+        file = open(filename, encoding="utf-8")
+    except FileNotFoundError:
+        print(f"Файл {filename} не найден!")
+        return data
+
+    reader = csv.reader(file)
+    next(reader)  # пропускаем заголовок
+
+    for row in reader:
+        # в csv числа записаны с запятой вместо точки, заменяем
+        coin = {
+            "id": int(row[0]),
+            "name": row[1],
+            "symbol": row[2],
+            "slug": row[3],
+            "circulating_supply": float(row[4].replace(",", ".")),
+            "price": float(row[5].replace(",", ".")),
+            "market_cap": float(row[6].replace(",", "."))
+        }
+        data.append(coin)
+
+    file.close()
+    print(f"Загружено {len(data)} криптовалют из файла.")
+    return data
+
+
 def main():
     data = []
 
@@ -18,7 +51,7 @@ def main():
         choice = menu()
 
         if choice == "1":
-            print("(пока не реализовано)")
+            data = load_from_csv("currencies26.csv")
         elif choice == "2":
             print("(пока не реализовано)")
         elif choice == "3":
